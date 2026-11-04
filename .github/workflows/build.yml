@@ -31,7 +31,7 @@ jobs:
         run: dotnet test BusDockStudio.sln --configuration Release --no-build --no-restore --logger "trx;LogFileName=tests.trx"
 
       - name: Publish Apple Silicon
-        run: dotnet publish src/BusDockStudio.Desktop/BusDockStudio.Desktop.csproj --configuration Release --runtime osx-arm64 --self-contained true --no-restore --output artifacts/publish/osx-arm64
+        run: dotnet publish src/BusDockStudio.Desktop/BusDockStudio.Desktop.csproj --configuration Release --runtime osx-arm64 --self-contained true --output artifacts/publish/osx-arm64
 
       - name: Upload test results
         if: always()
