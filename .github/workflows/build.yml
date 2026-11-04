@@ -1,0 +1,48 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-publish:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore BusDockStudio.sln
+
+      - name: Build
+        run: dotnet build BusDockStudio.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test BusDockStudio.sln --configuration Release --no-build --no-restore --logger "trx;LogFileName=tests.trx"
+
+      - name: Publish Apple Silicon
+        run: dotnet publish src/BusDockStudio.Desktop/BusDockStudio.Desktop.csproj --configuration Release --runtime osx-arm64 --self-contained true --no-restore --output artifacts/publish/osx-arm64
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+      - name: Upload unsigned local build
+        uses: actions/upload-artifact@v4
+        with:
+          name: BusDockStudio-osx-arm64-unsigned
+          path: artifacts/publish/osx-arm64

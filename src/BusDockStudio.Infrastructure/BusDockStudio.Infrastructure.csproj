@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../BusDockStudio.Core/BusDockStudio.Core.csproj" />
+  </ItemGroup>
+</Project>

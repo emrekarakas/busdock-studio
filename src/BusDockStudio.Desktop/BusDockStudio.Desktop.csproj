@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>BusDockStudio</AssemblyName>
+    <RootNamespace>BusDockStudio</RootNamespace>
+    <ApplicationTitle>BusDock Studio</ApplicationTitle>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../BusDockStudio.Core/BusDockStudio.Core.csproj" />
+    <ProjectReference Include="../BusDockStudio.AzureServiceBus/BusDockStudio.AzureServiceBus.csproj" />
+    <ProjectReference Include="../BusDockStudio.Infrastructure/BusDockStudio.Infrastructure.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+</Project>
