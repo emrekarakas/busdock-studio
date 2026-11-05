@@ -5,218 +5,360 @@
         x:Class="BusDockStudio.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="BusDock Studio"
-        Width="1500" Height="900"
-        MinWidth="980" MinHeight="640"
+        Width="1440" Height="900"
+        MinWidth="1080" MinHeight="680"
         WindowStartupLocation="CenterScreen">
-  <Grid RowDefinitions="Auto,*,Auto">
-    <Border Grid.Row="0" Padding="16,12" BorderThickness="0,0,0,1"
-            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-        <Border Width="34" Height="34" CornerRadius="9" Background="#4F46E5" Margin="0,0,10,0">
-          <TextBlock Text="B" Foreground="White" FontSize="18" FontWeight="Bold"
-                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+  <Grid RowDefinitions="76,*,42" Background="{DynamicResource AppBackgroundBrush}">
+    <!-- Brand and application controls -->
+    <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+            Padding="24,0">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <Grid ColumnDefinitions="42,Auto" ColumnSpacing="12">
+          <Border Classes="icon-tile" Background="{DynamicResource AccentBrush}">
+            <Grid>
+              <Ellipse Width="7" Height="7" Fill="#AFAAFF"
+                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,7,0" />
+              <TextBlock Text="B" Foreground="White" FontSize="20" FontWeight="Bold"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+            <TextBlock Text="BusDock Studio" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="Azure Service Bus explorer" Classes="muted" FontSize="11" />
+          </StackPanel>
+        </Grid>
+
+        <Border Grid.Column="1" Background="{DynamicResource AccentSoftBrush}" CornerRadius="16"
+                HorizontalAlignment="Center" Padding="12,5">
+          <TextBlock Text="READ-ONLY PEEK" Foreground="{DynamicResource AccentBrush}"
+                     FontSize="10" FontWeight="Bold" LetterSpacing="0.8" />
         </Border>
-        <StackPanel Grid.Column="1">
-          <TextBlock Text="BusDock Studio" FontSize="18" FontWeight="SemiBold" />
-          <TextBlock Text="Inspect, manage, and recover your messages." Classes="muted" FontSize="12" />
-        </StackPanel>
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="Appearance" Classes="muted" VerticalAlignment="Center" FontSize="11" />
           <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}"
-                    Width="100" AutomationProperties.Name="Theme" />
-          <Button Content="Apply theme" Command="{Binding ApplyThemeCommand}"
+                    Width="104" AutomationProperties.Name="Theme" />
+          <Button Content="Apply" Command="{Binding ApplyThemeCommand}" Classes="compact"
                   AutomationProperties.Name="Apply selected theme" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="280,5,*,5,380">
-      <Border Grid.Column="0" Classes="panel" CornerRadius="0">
+    <!-- Three-panel workspace -->
+    <Grid Grid.Row="1" ColumnDefinitions="300,12,*,12,360" Margin="18">
+      <!-- Connections -->
+      <Border Grid.Column="0" Classes="panel">
         <Grid RowDefinitions="Auto,Auto,*">
-          <TextBlock Text="Connections &amp; entities" Classes="section-title" />
-          <Expander Grid.Row="1" Header="Add connection" Margin="0,0,0,12">
-            <StackPanel Spacing="8" Margin="0,8,0,0">
-              <TextBox Text="{Binding ConnectionName}" PlaceholderText="Display name (optional)"
-                       AutomationProperties.Name="Connection display name" />
-              <TextBox Text="{Binding ConnectionString}" PlaceholderText="Service Bus connection string"
-                       PasswordChar="●" AutomationProperties.Name="Service Bus connection string" />
-              <TextBlock Text="The credential remains in memory only and is forgotten when the app exits."
-                         Classes="muted" TextWrapping="Wrap" FontSize="11" />
-              <Button Content="Test &amp; add" Command="{Binding AddConnectionCommand}"
-                      HorizontalAlignment="Stretch" AutomationProperties.Name="Test and add connection" />
+          <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Connections" Classes="section-title" />
+              <TextBlock Text="Namespaces and entities" Classes="muted" FontSize="11" />
             </StackPanel>
+            <Border Grid.Column="1" Width="30" Height="30" CornerRadius="8"
+                    Background="{DynamicResource AccentSoftBrush}">
+              <TextBlock Text="⌁" Foreground="{DynamicResource AccentBrush}" FontSize="18"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+          </Grid>
+
+          <Expander Grid.Row="1" Margin="0,0,0,16">
+            <Expander.Header>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="＋" Foreground="{DynamicResource AccentBrush}" FontSize="16" />
+                <TextBlock Text="Add connection" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Expander.Header>
+            <Border Classes="subtle-card" Margin="0,10,0,0">
+              <StackPanel Spacing="9">
+                <TextBlock Text="DISPLAY NAME" Classes="label" />
+                <TextBox Text="{Binding ConnectionName}" PlaceholderText="Production, staging…"
+                         AutomationProperties.Name="Connection display name" />
+                <TextBlock Text="CONNECTION STRING" Classes="label" Margin="0,3,0,0" />
+                <TextBox Text="{Binding ConnectionString}" PlaceholderText="Endpoint=sb://…"
+                         PasswordChar="●" AutomationProperties.Name="Service Bus connection string" />
+                <Grid ColumnDefinitions="18,*" ColumnSpacing="6" Margin="0,2,0,2">
+                  <TextBlock Text="◉" Foreground="{DynamicResource SuccessBrush}" FontSize="10"
+                             VerticalAlignment="Top" Margin="0,2,0,0" />
+                  <TextBlock Grid.Column="1" Text="Kept in memory only and forgotten when the app exits."
+                             Classes="muted" TextWrapping="Wrap" FontSize="10" />
+                </Grid>
+                <Button Content="Test &amp; add connection" Command="{Binding AddConnectionCommand}"
+                        Classes="primary" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Test and add connection" />
+              </StackPanel>
+            </Border>
           </Expander>
+
           <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*">
-            <ComboBox ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}"
-                      DisplayMemberBinding="{Binding DisplayName}" AutomationProperties.Name="Saved connections"
-                      Margin="0,0,0,8" />
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
-              <Button Content="Reload" Command="{Binding LoadEntitiesCommand}"
-                      AutomationProperties.Name="Reload entities" />
-              <Button Content="Remove" Command="{Binding RemoveConnectionCommand}"
-                      AutomationProperties.Name="Remove selected connection" />
-            </StackPanel>
-            <TreeView Grid.Row="2" ItemsSource="{Binding EntityNodes}" SelectedItem="{Binding SelectedNode}"
-                      AutomationProperties.Name="Service Bus entity tree">
-              <TreeView.ItemTemplate>
-                <TreeDataTemplate DataType="vm:EntityTreeNode" ItemsSource="{Binding Children}">
-                  <TextBlock Text="{Binding Title}" Margin="2,4" />
-                </TreeDataTemplate>
-              </TreeView.ItemTemplate>
-            </TreeView>
+            <TextBlock Text="ACTIVE CONNECTION" Classes="label" Margin="0,0,0,6" />
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6" Margin="0,0,0,12">
+              <ComboBox ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}"
+                        DisplayMemberBinding="{Binding DisplayName}" MinWidth="140"
+                        AutomationProperties.Name="Saved connections" />
+              <Button Grid.Column="1" Content="↻" Command="{Binding LoadEntitiesCommand}" Classes="compact"
+                      IsEnabled="{Binding HasSelectedConnection}"
+                      ToolTip.Tip="Reload entities" AutomationProperties.Name="Reload entities" />
+              <Button Grid.Column="2" Content="×" Command="{Binding RemoveConnectionCommand}" Classes="compact ghost"
+                      IsEnabled="{Binding HasSelectedConnection}"
+                      ToolTip.Tip="Remove connection" AutomationProperties.Name="Remove selected connection" />
+            </Grid>
+            <Grid Grid.Row="2">
+              <TreeView ItemsSource="{Binding EntityNodes}" SelectedItem="{Binding SelectedNode}"
+                        AutomationProperties.Name="Service Bus entity tree">
+                <TreeView.ItemTemplate>
+                  <TreeDataTemplate DataType="vm:EntityTreeNode" ItemsSource="{Binding Children}">
+                    <TextBlock Text="{Binding Title}" Margin="3,5" />
+                  </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+              </TreeView>
+              <StackPanel IsVisible="{Binding !HasSelectedConnection}" HorizontalAlignment="Center"
+                          VerticalAlignment="Center" Width="210" Spacing="8">
+                <Border Classes="icon-tile" HorizontalAlignment="Center">
+                  <TextBlock Text="⌁" Foreground="{DynamicResource AccentBrush}" FontSize="22"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="No connection selected" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Text="Add a namespace connection to browse queues, topics, and subscriptions."
+                           Classes="muted" TextAlignment="Center" TextWrapping="Wrap" FontSize="11" />
+              </StackPanel>
+            </Grid>
           </Grid>
         </Grid>
       </Border>
 
-      <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="Transparent" />
+      <!-- Messages -->
+      <Border Grid.Column="2" Classes="panel">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+          <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Messages" Classes="page-title" />
+              <TextBlock Text="Browse safely without acquiring message locks" Classes="muted" FontSize="11" />
+            </StackPanel>
+            <Button Grid.Column="1" Command="{Binding OpenPurgeCommand}" Classes="danger compact"
+                    IsEnabled="{Binding HasSelectedSource}"
+                    AutomationProperties.Name="Open safe purge confirmation">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="⌫" FontSize="14" />
+                <TextBlock Text="Purge…" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </Grid>
 
-      <Border Grid.Column="2" Classes="panel" CornerRadius="0">
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
-          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-            <TextBox Text="{Binding SearchText}" PlaceholderText="Search message ID, subject, sequence…"
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto,108,Auto" ColumnSpacing="8" Margin="0,0,0,14">
+            <TextBox Text="{Binding SearchText}" PlaceholderText="Search by message ID, subject, or sequence…"
                      AutomationProperties.Name="Search messages" />
-            <NumericUpDown Grid.Column="1" Value="{Binding PageSize}" Minimum="1" Maximum="250"
-                           Width="84" AutomationProperties.Name="Page size" />
-            <Button Grid.Column="2" Content="Refresh" Command="{Binding RefreshMessagesCommand}"
-                    AutomationProperties.Name="Refresh messages" />
-            <Button Grid.Column="3" Content="Purge…" Command="{Binding OpenPurgeCommand}" Classes="danger"
-                    AutomationProperties.Name="Open safe purge confirmation" />
+            <TextBlock Grid.Column="1" Text="Page size" Classes="muted" VerticalAlignment="Center" FontSize="11" />
+            <NumericUpDown Grid.Column="2" Value="{Binding PageSize}" Minimum="1" Maximum="250"
+                           AutomationProperties.Name="Page size" />
+            <Button Grid.Column="3" Command="{Binding RefreshMessagesCommand}" Classes="compact"
+                    IsEnabled="{Binding HasSelectedSource}"
+                    AutomationProperties.Name="Refresh messages">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="↻" FontSize="14" />
+                <TextBlock Text="Refresh" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
           </Grid>
-          <Grid Grid.Row="1" ColumnDefinitions="80,160,*,145,100,95" Margin="8,14,8,6">
-            <TextBlock Text="Sequence" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="1" Text="Message ID" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="2" Text="Subject" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="3" Text="Enqueued" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="4" Text="State" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="5" Text="Delivery" FontWeight="SemiBold" />
+
+          <Border Grid.Row="2" Background="{DynamicResource SurfaceMutedBrush}" CornerRadius="8"
+                  Padding="12,9" Margin="0,0,0,6">
+            <Grid ColumnDefinitions="76,150,*,140,86,70">
+              <TextBlock Text="SEQUENCE" Classes="label" />
+              <TextBlock Grid.Column="1" Text="MESSAGE ID" Classes="label" />
+              <TextBlock Grid.Column="2" Text="SUBJECT" Classes="label" />
+              <TextBlock Grid.Column="3" Text="ENQUEUED" Classes="label" />
+              <TextBlock Grid.Column="4" Text="STATE" Classes="label" />
+              <TextBlock Grid.Column="5" Text="DELIVERY" Classes="label" />
+            </Grid>
+          </Border>
+
+          <Grid Grid.Row="3">
+            <ListBox ItemsSource="{Binding FilteredMessages}" SelectedItem="{Binding SelectedMessage}"
+                     Classes="message-list" AutomationProperties.Name="Peeked messages">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:MessageRecord">
+                  <Grid ColumnDefinitions="76,150,*,140,86,70" RowDefinitions="Auto,Auto" MinHeight="46">
+                    <TextBlock Text="{Binding SequenceNumber}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="{Binding MessageId}" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Subject}" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="{Binding EnqueuedTime, StringFormat={}{0:yyyy-MM-dd HH:mm}}"
+                               VerticalAlignment="Center" Classes="muted" />
+                    <TextBlock Grid.Column="4" Text="{Binding State}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="5" Text="{Binding DeliveryCount}" VerticalAlignment="Center" />
+                    <WrapPanel Grid.Row="1" Grid.ColumnSpan="6" Margin="0,5,0,0">
+                      <TextBlock Text="{Binding ScheduledEnqueueTime, StringFormat={}Scheduled: {0:yyyy-MM-dd HH:mm}  }" Classes="muted" FontSize="10" />
+                      <TextBlock Text="{Binding ExpiresAt, StringFormat={}Expires: {0:yyyy-MM-dd HH:mm}  }" Classes="muted" FontSize="10" />
+                      <TextBlock Text="{Binding SessionId, StringFormat={}Session: {0}  }" Classes="muted" FontSize="10" />
+                      <TextBlock Text="{Binding CorrelationId, StringFormat={}Correlation: {0}  }" Classes="muted" FontSize="10" />
+                      <TextBlock Text="{Binding ContentType, StringFormat={}Content: {0}  }" Classes="muted" FontSize="10" />
+                      <TextBlock Text="{Binding DeadLetterReason, StringFormat={}DLQ: {0}}" Classes="muted" FontSize="10" />
+                    </WrapPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel IsVisible="{Binding !HasMessages}" HorizontalAlignment="Center"
+                        VerticalAlignment="Center" Width="310" Spacing="9">
+              <Border Width="58" Height="58" CornerRadius="18" Background="{DynamicResource AccentSoftBrush}"
+                      HorizontalAlignment="Center">
+                <TextBlock Text="≋" Foreground="{DynamicResource AccentBrush}" FontSize="30"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Text="{Binding MessageEmptyTitle}" FontSize="16" FontWeight="SemiBold"
+                         HorizontalAlignment="Center" />
+              <TextBlock Text="{Binding MessageEmptyDescription}" Classes="muted" TextAlignment="Center"
+                         TextWrapping="Wrap" FontSize="11" />
+            </StackPanel>
           </Grid>
-          <ListBox Grid.Row="2" ItemsSource="{Binding FilteredMessages}" SelectedItem="{Binding SelectedMessage}"
-                   AutomationProperties.Name="Peeked messages">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="models:MessageRecord">
-                <Grid ColumnDefinitions="80,160,*,145,100,95" RowDefinitions="Auto,Auto" MinHeight="52">
-                  <TextBlock Text="{Binding SequenceNumber}" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding MessageId}" TextTrimming="CharacterEllipsis"
-                             VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="2" Text="{Binding Subject}" TextTrimming="CharacterEllipsis"
-                             VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="3" Text="{Binding EnqueuedTime, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}"
-                             VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="4" Text="{Binding State}" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="5" Text="{Binding DeliveryCount}" VerticalAlignment="Center" />
-                  <WrapPanel Grid.Row="1" Grid.ColumnSpan="6" Margin="0,4,0,2">
-                    <TextBlock Text="{Binding ScheduledEnqueueTime, StringFormat={}Scheduled: {0:yyyy-MM-dd HH:mm:ss}  }" Classes="muted" FontSize="11" />
-                    <TextBlock Text="{Binding ExpiresAt, StringFormat={}Expires: {0:yyyy-MM-dd HH:mm:ss}  }" Classes="muted" FontSize="11" />
-                    <TextBlock Text="{Binding SessionId, StringFormat={}Session: {0}  }" Classes="muted" FontSize="11" />
-                    <TextBlock Text="{Binding CorrelationId, StringFormat={}Correlation: {0}  }" Classes="muted" FontSize="11" />
-                    <TextBlock Text="{Binding ContentType, StringFormat={}Content: {0}  }" Classes="muted" FontSize="11" />
-                    <TextBlock Text="{Binding DeadLetterReason, StringFormat={}DLQ: {0}}" Classes="muted" FontSize="11" />
-                  </WrapPanel>
-                </Grid>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-          <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,10,0,0">
-            <Button Content="Previous" Command="{Binding PreviousPageCommand}"
+
+          <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,12,0,0">
+            <Button Content="← Previous" Command="{Binding PreviousPageCommand}" Classes="compact"
+                    IsEnabled="{Binding CanGoBack}"
                     AutomationProperties.Name="Previous message page" />
-            <TextBlock Grid.Column="1" Text="{Binding PageLabel}" VerticalAlignment="Center" Margin="12,0" />
-            <TextBlock Grid.Column="2" Text="Peek is read-only; individual deletion is intentionally unavailable."
-                       Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
-            <Button Grid.Column="3" Content="Next" Command="{Binding NextPageCommand}"
+            <Border Grid.Column="1" Background="{DynamicResource SurfaceMutedBrush}" CornerRadius="8"
+                    Padding="10,6" Margin="8,0,0,0">
+              <TextBlock Text="{Binding PageLabel}" VerticalAlignment="Center" FontSize="11" />
+            </Border>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+              <TextBlock Text="●" Foreground="{DynamicResource SuccessBrush}" FontSize="8" />
+              <TextBlock Text="Peek mode · no message locks" Classes="muted" FontSize="11" />
+            </StackPanel>
+            <Button Grid.Column="3" Content="Next →" Command="{Binding NextPageCommand}" Classes="compact"
+                    IsEnabled="{Binding HasMessages}"
                     AutomationProperties.Name="Next message page" />
           </Grid>
         </Grid>
       </Border>
 
-      <GridSplitter Grid.Column="3" ResizeDirection="Columns" Background="Transparent" />
-
-      <Border Grid.Column="4" Classes="panel" CornerRadius="0">
+      <!-- Details -->
+      <Border Grid.Column="4" Classes="panel">
         <Grid RowDefinitions="Auto,*,Auto">
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-            <TextBlock Text="Message details" Classes="section-title" />
-            <Button Grid.Column="1" Content="Copy body" Click="CopyBody_Click"
-                    AutomationProperties.Name="Copy message body" />
-            <Button Grid.Column="2" Content="Copy metadata" Click="CopyMetadata_Click"
-                    AutomationProperties.Name="Copy message metadata" />
+          <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Message details" Classes="section-title" />
+              <TextBlock Text="Body and metadata" Classes="muted" FontSize="11" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5">
+              <Button Content="Body" Click="CopyBody_Click" Classes="compact"
+                      IsEnabled="{Binding HasSelectedMessage}"
+                      AutomationProperties.Name="Copy message body" />
+              <Button Content="Metadata" Click="CopyMetadata_Click" Classes="compact"
+                      IsEnabled="{Binding HasSelectedMessage}"
+                      AutomationProperties.Name="Copy message metadata" />
+            </StackPanel>
           </Grid>
-          <TabControl Grid.Row="1" Margin="0,8,0,0">
-            <TabItem Header="Body">
-              <Grid RowDefinitions="Auto,*" Margin="0,10,0,0">
-                <ComboBox ItemsSource="{Binding BodyViewOptions}" SelectedItem="{Binding SelectedBodyView}"
-                          Width="120" HorizontalAlignment="Left" AutomationProperties.Name="Message body view" />
-                <TextBox Grid.Row="1" Text="{Binding SelectedBody}" IsReadOnly="True" AcceptsReturn="True"
-                         FontFamily="Menlo,Consolas,monospace" TextWrapping="NoWrap"
-                         ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"
-                         Margin="0,8,0,0" AutomationProperties.Name="Message body" />
-              </Grid>
-            </TabItem>
-            <TabItem Header="System">
-              <ScrollViewer Margin="0,10,0,0">
-                <ItemsControl ItemsSource="{Binding SelectedMessage.SystemProperties}" x:CompileBindings="False">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <Grid ColumnDefinitions="140,*" Margin="0,0,0,8">
-                        <TextBlock Text="{Binding Key}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                        <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
-                      </Grid>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </ScrollViewer>
-            </TabItem>
-            <TabItem Header="Application">
-              <ScrollViewer Margin="0,10,0,0">
-                <ItemsControl ItemsSource="{Binding SelectedMessage.ApplicationProperties}" x:CompileBindings="False">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <Grid ColumnDefinitions="140,*" Margin="0,0,0,8">
-                        <TextBlock Text="{Binding Key}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                        <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
-                      </Grid>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </ScrollViewer>
-            </TabItem>
-            <TabItem Header="DLQ">
-              <StackPanel Margin="0,12" Spacing="8">
-                <TextBlock Text="Reason" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding SelectedMessage.DeadLetterReason}" TextWrapping="Wrap" />
-                <TextBlock Text="Error description" FontWeight="SemiBold" Margin="0,8,0,0" />
-                <TextBlock Text="{Binding SelectedMessage.DeadLetterErrorDescription}" TextWrapping="Wrap" />
-                <TextBlock Text="Resend is planned for a later release." Classes="muted" Margin="0,12,0,0" />
-              </StackPanel>
-            </TabItem>
-          </TabControl>
 
-          <Border Grid.Row="2" IsVisible="{Binding IsPurgePanelVisible}" Background="#26B42318"
-                  BorderBrush="#B42318" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,12,0,0">
-            <StackPanel Spacing="8">
-              <TextBlock Text="Permanent bulk purge" FontWeight="Bold" Foreground="#D92D20" />
+          <Grid Grid.Row="1">
+            <StackPanel IsVisible="{Binding !HasSelectedMessage}" HorizontalAlignment="Center"
+                        VerticalAlignment="Center" Width="250" Spacing="9">
+              <Border Classes="icon-tile" HorizontalAlignment="Center">
+                <TextBlock Text="JSON" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="Bold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Text="Select a message" FontWeight="SemiBold" FontSize="15"
+                         HorizontalAlignment="Center" />
+              <TextBlock Text="Choose a row to inspect its body, system properties, and application metadata."
+                         Classes="muted" TextAlignment="Center" TextWrapping="Wrap" FontSize="11" />
+            </StackPanel>
+
+            <TabControl IsVisible="{Binding HasSelectedMessage}">
+              <TabItem Header="Body">
+                <Grid RowDefinitions="Auto,*" Margin="0,12,0,0">
+                  <ComboBox ItemsSource="{Binding BodyViewOptions}" SelectedItem="{Binding SelectedBodyView}"
+                            Width="130" HorizontalAlignment="Left" AutomationProperties.Name="Message body view" />
+                  <TextBox Grid.Row="1" Text="{Binding SelectedBody}" IsReadOnly="True" AcceptsReturn="True"
+                           FontFamily="SF Mono, Menlo, Consolas, monospace" FontSize="12"
+                           Background="{DynamicResource CodeSurfaceBrush}" TextWrapping="NoWrap"
+                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                           ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,10,0,0"
+                           AutomationProperties.Name="Message body" />
+                </Grid>
+              </TabItem>
+              <TabItem Header="System">
+                <ScrollViewer Margin="0,14,0,0">
+                  <ItemsControl ItemsSource="{Binding SelectedMessage.SystemProperties}" x:CompileBindings="False">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,9" Margin="0,0,0,9">
+                          <Grid ColumnDefinitions="120,*">
+                            <TextBlock Text="{Binding Key}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" Classes="muted" />
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </TabItem>
+              <TabItem Header="Application">
+                <ScrollViewer Margin="0,14,0,0">
+                  <ItemsControl ItemsSource="{Binding SelectedMessage.ApplicationProperties}" x:CompileBindings="False">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,9" Margin="0,0,0,9">
+                          <Grid ColumnDefinitions="120,*">
+                            <TextBlock Text="{Binding Key}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" Classes="muted" />
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </TabItem>
+              <TabItem Header="DLQ">
+                <StackPanel Margin="0,14" Spacing="8">
+                  <TextBlock Text="REASON" Classes="label" />
+                  <TextBlock Text="{Binding SelectedMessage.DeadLetterReason}" TextWrapping="Wrap" />
+                  <TextBlock Text="ERROR DESCRIPTION" Classes="label" Margin="0,10,0,0" />
+                  <TextBlock Text="{Binding SelectedMessage.DeadLetterErrorDescription}" TextWrapping="Wrap" />
+                  <Border Classes="subtle-card" Margin="0,10,0,0">
+                    <TextBlock Text="Resend is planned for a later release." Classes="muted" TextWrapping="Wrap" />
+                  </Border>
+                </StackPanel>
+              </TabItem>
+            </TabControl>
+          </Grid>
+
+          <Border Grid.Row="2" IsVisible="{Binding IsPurgePanelVisible}"
+                  Background="{DynamicResource DangerSoftBrush}" BorderBrush="{DynamicResource DangerBorderBrush}"
+                  BorderThickness="1" CornerRadius="10" Padding="14" Margin="0,12,0,0">
+            <StackPanel Spacing="9">
+              <TextBlock Text="Permanent bulk purge" FontWeight="Bold" Foreground="{DynamicResource DangerBrush}" />
               <TextBlock Text="{Binding PurgeSummary}" TextWrapping="Wrap" />
-              <TextBlock Text="Locked, deferred, and scheduled messages may remain. Cancellation, timeout, or connection failure can leave a partial result."
-                         TextWrapping="Wrap" FontSize="11" />
-              <TextBlock Text="Type the exact entity name to confirm:" FontWeight="SemiBold" />
+              <TextBlock Text="Locked, deferred, and scheduled messages may remain. Interruption can leave a partial result."
+                         Classes="muted" TextWrapping="Wrap" FontSize="10" />
+              <TextBlock Text="TYPE THE EXACT ENTITY NAME" Classes="label" />
               <TextBox Text="{Binding PurgeConfirmation}" AutomationProperties.Name="Purge entity confirmation" />
               <TextBlock Text="{Binding PurgeDeletedCount, StringFormat={}Deleted: {0:N0}}" />
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Content="Cancel" Command="{Binding ClosePurgeCommand}" />
-                <Button Content="Cancel operation" Command="{Binding CancelOperationCommand}" />
-                <Button Content="Purge permanently" Command="{Binding ConfirmPurgeCommand}" Classes="danger"
+              <WrapPanel HorizontalAlignment="Right">
+                <Button Content="Close" Command="{Binding ClosePurgeCommand}" Classes="compact" Margin="0,0,6,0" />
+                <Button Content="Stop" Command="{Binding CancelOperationCommand}" Classes="compact" Margin="0,0,6,0" />
+                <Button Content="Purge permanently" Command="{Binding ConfirmPurgeCommand}" Classes="danger compact"
                         AutomationProperties.Name="Confirm permanent purge" />
-              </StackPanel>
+              </WrapPanel>
             </StackPanel>
           </Border>
         </Grid>
       </Border>
     </Grid>
 
-    <Border Grid.Row="2" Padding="12,8" BorderThickness="0,1,0,0"
-            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-        <ProgressBar Width="90" IsIndeterminate="True" IsVisible="{Binding IsBusy}" Margin="0,0,10,0" />
-        <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" VerticalAlignment="Center" />
-        <TextBlock Grid.Column="2" Text="{Binding ErrorMessage}" Foreground="#D92D20"
-                   VerticalAlignment="Center" TextWrapping="Wrap" />
+    <!-- Status bar -->
+    <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="20,0">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <ProgressBar Width="72" Height="3" IsIndeterminate="True" IsVisible="{Binding IsBusy}" Margin="0,0,10,0" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
+          <TextBlock Text="●" Foreground="{DynamicResource SuccessBrush}" FontSize="8" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding StatusMessage}" Classes="muted" VerticalAlignment="Center" FontSize="11" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" Text="{Binding ErrorMessage}" Foreground="{DynamicResource DangerBrush}"
+                   VerticalAlignment="Center" TextWrapping="Wrap" FontSize="11" />
       </Grid>
     </Border>
   </Grid>

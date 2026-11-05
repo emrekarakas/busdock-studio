@@ -64,8 +64,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public IReadOnlyList<string> BodyViewOptions { get; } = ["Formatted", "Text", "Base64", "Raw (hex)"];
     public string PageLabel => $"Page {pageIndex + 1}";
     public bool CanGoBack => pageIndex > 0 && !IsBusy;
+    public bool HasSelectedConnection => SelectedConnection is not null;
     public bool HasSelectedSource => SelectedNode?.Source is not null;
     public bool HasSelectedMessage => SelectedMessage is not null;
+    public bool HasMessages => FilteredMessages.Count > 0;
+    public string MessageEmptyTitle => HasSelectedSource ? "No messages found" : "Choose an entity";
+    public string MessageEmptyDescription => HasSelectedSource
+        ? "This view is empty, or no messages match your search. Refresh to check again."
+        : "Select an active, dead-letter, or transfer dead-letter view from the connection panel.";
     public string SelectedBody => SelectedMessage is null
         ? string.Empty
         : SelectedBodyView switch
@@ -280,6 +286,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         EntityNodes.Clear();
         ClearMessages();
+        OnPropertyChanged(nameof(HasSelectedConnection));
         if (value is not null)
         {
             LoadEntitiesCommand.Execute(null);
@@ -295,6 +302,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(PageLabel));
         OnPropertyChanged(nameof(CanGoBack));
         OnPropertyChanged(nameof(HasSelectedSource));
+        OnPropertyChanged(nameof(MessageEmptyTitle));
+        OnPropertyChanged(nameof(MessageEmptyDescription));
         OnPropertyChanged(nameof(PurgeTargetName));
         OnPropertyChanged(nameof(PurgeSummary));
         if (value?.Source is not null)
@@ -410,6 +419,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             FilteredMessages.Add(message);
         }
+
+        OnPropertyChanged(nameof(HasMessages));
+        OnPropertyChanged(nameof(MessageEmptyTitle));
+        OnPropertyChanged(nameof(MessageEmptyDescription));
     }
 
     private void ClearMessages()
@@ -417,6 +430,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         Messages.Clear();
         FilteredMessages.Clear();
         SelectedMessage = null;
+        OnPropertyChanged(nameof(HasMessages));
+        OnPropertyChanged(nameof(MessageEmptyTitle));
+        OnPropertyChanged(nameof(MessageEmptyDescription));
     }
 
     private static string FormatRaw(byte[] bytes)
