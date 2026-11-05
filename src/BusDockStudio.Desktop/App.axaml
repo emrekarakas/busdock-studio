@@ -173,6 +173,13 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
+  <Style Selector="TreeView.compact-tree">
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+    <Style Selector="TreeView.compact-tree TreeViewItem">
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="Padding" Value="3,1" />
+    </Style>
     <Style Selector="TabControl">
       <Setter Property="Background" Value="Transparent" />
     </Style>

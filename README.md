@@ -1,84 +1,111 @@
 # BusDock Studio
 
-**Inspect, manage, and recover your messages.**
+<p align="center">
+  <strong>A focused, safety-first desktop explorer for Azure Service Bus.</strong>
+</p>
 
-BusDock Studio is an open-source desktop explorer for Azure Service Bus, designed first for macOS. It provides a modern, cautious workflow for browsing namespaces and diagnosing queue or subscription messages without pretending that peeked messages can be individually deleted.
+<p align="center">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-635BFF.svg"></a>
+  <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-512BD4.svg">
+  <img alt="Avalonia 12" src="https://img.shields.io/badge/Avalonia-12-8B5CF6.svg">
+  <img alt="macOS Apple Silicon" src="https://img.shields.io/badge/macOS-Apple%20Silicon-111827.svg">
+</p>
 
-> BusDock Studio is an independent open-source community project. It is not developed, sponsored, endorsed, or supported by Microsoft. Azure and Microsoft are trademarks of their respective owners; no Microsoft or Azure logos are used by this project.
+BusDock Studio helps developers inspect queues, topics, subscriptions, dead-letter queues, and message metadata without acquiring message locks. It pairs a compact three-panel interface with deliberately cautious bulk-purge workflows for local troubleshooting and test environments.
 
-## Features
+> [!IMPORTANT]
+> BusDock Studio is an independent community project. It is not developed, sponsored, endorsed, or supported by Microsoft.
 
-- Add and test a namespace connection string; the credential is kept in memory only.
-- Browse queues, topics, and subscriptions in a three-panel Avalonia UI.
-- Peek active, dead-letter, and transfer dead-letter subqueues without locking messages.
-- Inspect formatted JSON, text, Base64, system properties, application properties, and dead-letter details.
-- Search, refresh, page by sequence number, and choose a page size up to the service limit.
-- Purge eligible messages with a fixed UTC cutoff, exact-name confirmation, partition checks, progress, cancellation, and explicit partial-completion warnings.
-- Follow the system, light, or dark appearance.
+![BusDock Studio interface](docs/images/busdock-studio.svg)
 
-## Screenshot
+## Highlights
 
-![BusDock Studio screenshot placeholder](docs/images/screenshot-placeholder.svg)
+- **Read-only peek:** browse active, dead-letter, and transfer dead-letter messages without consuming or locking them.
+- **Fast entity navigation:** grouped queues and topics, entity search, compact rows, per-subqueue message counts, and preserved expansion state.
+- **Rich message inspection:** formatted JSON, plain text, Base64, raw hex, system properties, application properties, and DLQ diagnostics.
+- **Safe bulk purge:** right-click a subqueue, review its namespace and approximate count, then explicitly acknowledge permanent deletion.
+- **Saved connections:** connection profiles return on launch while credentials stay in macOS Keychain.
+- **Native desktop experience:** system, light, and dark appearances in an Avalonia UI built for macOS first.
 
-The placeholder will be replaced with a real application screenshot before the first public release.
+## Safety model
 
-## Requirements
+BusDock Studio treats message deletion as a separate, destructive workflow:
 
-- macOS on Apple Silicon for the initial packaged target.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) to build from source.
-- An Azure Service Bus namespace connection string. See permissions below.
+1. Ordinary browsing always uses Service Bus peek operations.
+2. Individual deletion of peeked rows is intentionally unavailable.
+3. Purge captures one UTC cutoff, so messages enqueued after the operation begins are not targeted.
+4. The app rejects partitioned entities and concurrent purge attempts.
+5. Purge delegates to Azure's broker-side bulk operation; it never falls back to client-side receive-and-delete.
+
+Locked, deferred, or scheduled messages may remain. Cancellation, timeout, or connectivity loss can leave a partially completed purge, so use a non-production namespace while evaluating the app.
+
+## Install on macOS
+
+The current packaged target is Apple Silicon (`osx-arm64`). Build a self-contained, ad-hoc signed DMG:
+
+```bash
+./scripts/package-macos.sh osx-arm64
+open artifacts/BusDockStudio-0.1.0-macos-arm64.dmg
+```
+
+Drag **BusDock Studio** into **Applications**. A separate .NET installation is not required. Because local builds are not Apple-notarized, macOS may require Control-click → **Open** on first launch.
+
+See [macOS packaging](docs/macos-packaging.md) for versioning, Developer ID signing, and notarization guidance.
 
 ## Run from source
 
+Requirements:
+
+- macOS 12 or later
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- An Azure Service Bus namespace connection string
+
 ```bash
+git clone https://github.com/emrekarakas/busdock-studio.git
+cd busdock-studio
 dotnet restore BusDockStudio.sln
 dotnet build BusDockStudio.sln --no-restore
 dotnet test BusDockStudio.sln --no-build
 dotnet run --project src/BusDockStudio.Desktop
 ```
 
-The solution uses stable releases only: Avalonia 12.1.4, CommunityToolkit.Mvvm 8.4.2, Azure.Messaging.ServiceBus 7.21.0, and Azure.Identity 1.21.0.
+## Azure permissions
 
-## Install a local macOS build
+| Capability | Typical requirement |
+| --- | --- |
+| Discover queues, topics, and subscriptions | Namespace connection string with **Manage** |
+| Peek active and dead-letter messages | **Listen** |
+| Broker-side purge | Data-plane access accepted by the Service Bus purge operation |
 
-Create an Apple Silicon, self-contained application bundle:
+Use the narrowest practical policy and avoid sharing production connection strings. BusDock Studio stores each connection string as a generic-password item in macOS Keychain. Only the profile ID, display name, namespace hostname, and appearance preference are written to the local settings file.
 
-```bash
-./scripts/package-macos.sh
-open artifacts/BusDockStudio.app
+## Architecture
+
+```text
+BusDockStudio.Desktop          Avalonia UI and MVVM composition
+        │
+        ├── BusDockStudio.Core              domain models and safe use cases
+        ├── BusDockStudio.AzureServiceBus   Azure SDK adapters
+        └── BusDockStudio.Infrastructure    Keychain and local settings
 ```
 
-The local bundle is unsigned. macOS may require a Control-click → Open on first launch. Signing, notarization, and DMG steps are documented in [macOS packaging](docs/macos-packaging.md).
+The UI and Core projects do not depend on Azure SDK models. This keeps formatting, pagination, purge coordination, and safety checks independently testable. The architectural reasoning is documented in [ADR 0001](docs/adr/0001-architecture.md).
 
-## Azure authorization requirements
+## Current limitations
 
-Entity discovery uses the administration client and normally requires a namespace-level connection string with **Manage** permission. Peeking and broker-side purge require data-plane **Listen** rights; exact requirements can vary by the namespace policy. Prefer a narrowly scoped, non-production namespace while evaluating the app.
+- The packaged build currently targets Apple Silicon; Intel macOS, Windows, and Linux packages are not published yet.
+- Topic messages must be inspected through a subscription.
+- Resending dead-letter messages is intentionally outside the current release.
+- The Azure SDK purge operation used by the adapter is still a preview surface and is unavailable for partitioned entities.
+- Public macOS releases still require Developer ID signing and Apple notarization.
 
-Connection strings are accepted for the MVP. Interactive browser authentication with `Azure.Identity` is part of the roadmap.
+See the [roadmap](docs/roadmap.md) for interactive Azure authentication, DLQ resend safety, additional platform packages, and future product work.
 
-## Security warnings
+## Contributing and security
 
-Purge is permanent. Before a purge, BusDock Studio shows the namespace, entity, subqueue, and approximate count, then requires the exact entity name. One UTC cutoff is captured so messages enqueued after the operation starts are not targeted. Partitioned entities are rejected. Locked, deferred, and scheduled messages can remain. Timeout, cancellation, or connectivity loss can mean a partially completed purge.
+Issues and focused pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Never paste credentials into issues, screenshots, logs, or pull requests. See [SECURITY.md](SECURITY.md) for private vulnerability reporting guidance.
-
-## Known limitations
-
-- Secrets are memory-only in this iteration, so connections must be re-added after restart. A macOS Keychain adapter is planned.
-- Topic messages are not consumable directly; choose a subscription.
-- Peek results are read-only. Selected-message deletion is intentionally unavailable.
-- DLQ resend is intentionally excluded from the MVP.
-- Azure.Messaging.ServiceBus 7.21.0 contains the broker-side purge operation but does not expose it as a stable public method. The adapter isolates a fail-closed compatibility bridge to that official SDK operation; it refuses to fall back to receive-and-delete if the signature changes. This bridge should be removed as soon as a stable public API is released.
-- Purge remains a preview capability in the Azure Service Bus service and is unavailable for partitioned entities.
-- The initial packaged target is Apple Silicon. Intel macOS is planned.
-
-## Roadmap
-
-See [docs/roadmap.md](docs/roadmap.md) for Keychain, interactive authentication, DLQ resend safety, Intel packaging, and future UX work.
-
-## Contributing
-
-Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md), and the [architecture decision record](docs/adr/0001-architecture.md) first.
+Never include real connection strings, SAS keys, message bodies, customer namespace names, or screenshots containing sensitive data in an issue. Report vulnerabilities privately according to [SECURITY.md](SECURITY.md).
 
 ## License
 

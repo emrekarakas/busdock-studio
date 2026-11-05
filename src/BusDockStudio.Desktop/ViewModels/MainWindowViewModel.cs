@@ -18,6 +18,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly PurgeCoordinator purgeCoordinator;
     private readonly Action<string> setTheme;
     private readonly List<long?> pageCursors = [null];
+    private IReadOnlyList<EntityDescriptor> loadedEntities = [];
     private CancellationTokenSource? operationCancellation;
     private int pageIndex;
 
@@ -26,13 +27,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty] private ConnectionProfile? selectedConnection;
     [ObservableProperty] private EntityTreeNode? selectedNode;
     [ObservableProperty] private MessageRecord? selectedMessage;
+    [ObservableProperty] private string entitySearchText = string.Empty;
     [ObservableProperty] private string searchText = string.Empty;
     [ObservableProperty] private int pageSize = 50;
     [ObservableProperty] private string statusMessage = "Add a connection to begin.";
     [ObservableProperty] private string errorMessage = string.Empty;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isPurgePanelVisible;
-    [ObservableProperty] private string purgeConfirmation = string.Empty;
+    [ObservableProperty] private bool isPurgeAcknowledged;
     [ObservableProperty] private long purgeDeletedCount;
     [ObservableProperty] private string selectedTheme = "System";
     [ObservableProperty] private string selectedBodyView = "Formatted";
@@ -91,11 +93,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public async Task InitializeAsync()
     {
+        SelectedTheme = settings.Theme;
+        setTheme(SelectedTheme);
         var connections = await settings.GetConnectionsAsync(CancellationToken.None);
         foreach (var profile in connections)
         {
             Connections.Add(profile);
         }
+
+        SelectedConnection = Connections.FirstOrDefault();
     }
 
     [RelayCommand]
@@ -125,17 +131,40 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 return;
             }
 
+            var existing = Connections.FirstOrDefault(item => string.Equals(
+                item.FullyQualifiedNamespace,
+                result.FullyQualifiedNamespace,
+                StringComparison.OrdinalIgnoreCase));
             var profile = new ConnectionProfile(
-                Guid.NewGuid(),
+                existing?.Id ?? Guid.NewGuid(),
                 string.IsNullOrWhiteSpace(ConnectionName) ? result.FullyQualifiedNamespace : ConnectionName.Trim(),
                 result.FullyQualifiedNamespace);
             await secretStore.SetAsync(profile.Id, ConnectionString, token);
-            await settings.SaveConnectionAsync(profile, token);
-            Connections.Add(profile);
+            try
+            {
+                await settings.SaveConnectionAsync(profile, token);
+            }
+            catch
+            {
+                await secretStore.RemoveAsync(profile.Id, CancellationToken.None);
+                throw;
+            }
+
+            if (existing is null)
+            {
+                Connections.Add(profile);
+            }
+            else
+            {
+                Connections[Connections.IndexOf(existing)] = profile;
+            }
+
             ConnectionString = string.Empty;
             ConnectionName = string.Empty;
             SelectedConnection = profile;
-            StatusMessage = "Connection added. Its credential is held in memory only.";
+            StatusMessage = existing is null
+                ? "Connection saved securely in macOS Keychain."
+                : "Saved connection and credential updated.";
             await LoadEntitiesCoreAsync(profile, token);
         });
     }
@@ -152,6 +181,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         await settings.RemoveConnectionAsync(profile.Id, CancellationToken.None);
         Connections.Remove(profile);
         SelectedConnection = null;
+        loadedEntities = [];
+        EntitySearchText = string.Empty;
         EntityNodes.Clear();
         ClearMessages();
         StatusMessage = "Connection removed.";
@@ -221,20 +252,30 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        PurgeConfirmation = string.Empty;
+        IsPurgeAcknowledged = false;
         IsPurgePanelVisible = true;
         OnPropertyChanged(nameof(PurgeTargetName));
         OnPropertyChanged(nameof(PurgeSummary));
     }
 
     [RelayCommand]
-    private void ClosePurge() => IsPurgePanelVisible = false;
+    private void ClosePurge()
+    {
+        IsPurgePanelVisible = false;
+        IsPurgeAcknowledged = false;
+    }
 
     [RelayCommand]
     private async Task ConfirmPurgeAsync()
     {
         if (SelectedNode?.Source is not { } source || SelectedConnection is not { } connection || IsBusy)
         {
+            return;
+        }
+
+        if (!IsPurgeAcknowledged)
+        {
+            ErrorMessage = "Acknowledge the permanent deletion before continuing.";
             return;
         }
 
@@ -256,7 +297,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 PurgeDeletedCount = value.DeletedCount;
                 StatusMessage = value.Phase;
             });
-            var request = new PurgeRequest(source, connection.FullyQualifiedNamespace, PurgeConfirmation, source.ApproximateCount, TimeSpan.FromMinutes(5));
+            var request = new PurgeRequest(source, connection.FullyQualifiedNamespace, source.EntityName, source.ApproximateCount, TimeSpan.FromMinutes(5));
             var result = await purgeCoordinator.ExecuteAsync(secret, request, progress, operationCancellation.Token);
             PurgeDeletedCount = result.DeletedCount;
             StatusMessage = result.Message;
@@ -268,7 +309,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             if (result.Status == PurgeStatus.Succeeded)
             {
                 IsPurgePanelVisible = false;
-                await LoadPageCoreAsync(secret, source, pageCursors[pageIndex], CancellationToken.None);
+                IsPurgeAcknowledged = false;
+                var entities = await entityBrowser.BrowseAsync(secret, CancellationToken.None);
+                loadedEntities = entities;
+                BuildTree(entities);
+                ExpandPathToSource(EntityNodes, source);
+                SelectedNode = FindSourceNode(EntityNodes, source);
+                if (SelectedNode?.Source is { } refreshedSource)
+                {
+                    await LoadPageCoreAsync(secret, refreshedSource, pageCursors[pageIndex], CancellationToken.None);
+                }
+
+                StatusMessage = result.Message;
             }
         }
         finally
@@ -285,7 +337,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     partial void OnSelectedConnectionChanged(ConnectionProfile? value)
     {
         EntityNodes.Clear();
+        loadedEntities = [];
+        EntitySearchText = string.Empty;
         ClearMessages();
+        IsPurgePanelVisible = false;
+        IsPurgeAcknowledged = false;
         OnPropertyChanged(nameof(HasSelectedConnection));
         if (value is not null)
         {
@@ -299,6 +355,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         pageCursors.Clear();
         pageCursors.Add(null);
         ClearMessages();
+        IsPurgePanelVisible = false;
+        IsPurgeAcknowledged = false;
         OnPropertyChanged(nameof(PageLabel));
         OnPropertyChanged(nameof(CanGoBack));
         OnPropertyChanged(nameof(HasSelectedSource));
@@ -320,6 +378,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     partial void OnSelectedBodyViewChanged(string value) => OnPropertyChanged(nameof(SelectedBody));
+    partial void OnEntitySearchTextChanged(string value)
+    {
+        SelectedNode = null;
+        BuildTree(loadedEntities);
+    }
     partial void OnSearchTextChanged(string value) => ApplyFilter();
     partial void OnPageSizeChanged(int value)
     {
@@ -332,6 +395,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             ?? throw new InvalidOperationException("The credential is unavailable.");
         StatusMessage = "Loading queues, topics, and subscriptions...";
         var entities = await entityBrowser.BrowseAsync(secret, token);
+        loadedEntities = entities;
         BuildTree(entities);
         StatusMessage = entities.Count == 0 ? "No entities found." : $"Loaded {entities.Count:N0} entities.";
     }
@@ -370,29 +434,68 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void BuildTree(IReadOnlyList<EntityDescriptor> entities)
     {
+        var expandedNodes = CaptureExpandedNodes(EntityNodes);
         EntityNodes.Clear();
-        foreach (var queue in entities.Where(item => item.Kind == EntityKind.Queue).OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
+        var query = EntitySearchText.Trim();
+        var allQueues = entities
+            .Where(item => item.Kind == EntityKind.Queue)
+            .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var queues = allQueues
+            .Where(item => MatchesEntitySearch(item.Name, query))
+            .ToArray();
+        var queueGroup = new EntityTreeNode($"Queues ({queues.Length:N0})", isGroup: true);
+        foreach (var queue in queues)
         {
-            var node = new EntityTreeNode($"Queue  {queue.Name}");
+            var node = new EntityTreeNode(queue.Name);
             AddSubqueues(node, queue.Name, EntityKind.Queue, null, queue.IsPartitioned,
-                queue.ApproximateActiveCount, queue.ApproximateDeadLetterCount);
-            EntityNodes.Add(node);
+                queue.ApproximateActiveCount, queue.ApproximateDeadLetterCount,
+                queue.ApproximateTransferDeadLetterCount);
+            queueGroup.Children.Add(node);
+        }
+        EntityNodes.Add(queueGroup);
+
+        var allTopics = entities
+            .Where(item => item.Kind == EntityKind.Topic)
+            .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var matchingTopics = new List<(EntityDescriptor Topic, EntityDescriptor[] Subscriptions)>();
+        foreach (var topic in allTopics)
+        {
+            var subscriptions = entities
+                .Where(item => item.Kind == EntityKind.Subscription && item.ParentName == topic.Name)
+                .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var topicMatches = MatchesEntitySearch(topic.Name, query);
+            var matchingSubscriptions = topicMatches
+                ? subscriptions
+                : subscriptions.Where(item => MatchesEntitySearch(item.Name, query)).ToArray();
+            if (topicMatches || matchingSubscriptions.Length > 0)
+            {
+                matchingTopics.Add((topic, matchingSubscriptions));
+            }
         }
 
-        foreach (var topic in entities.Where(item => item.Kind == EntityKind.Topic).OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
+        var topicGroup = new EntityTreeNode($"Topics ({matchingTopics.Count:N0})", isGroup: true);
+        foreach (var (topic, subscriptions) in matchingTopics)
         {
-            var topicNode = new EntityTreeNode($"Topic  {topic.Name}");
-            foreach (var subscription in entities.Where(item => item.Kind == EntityKind.Subscription && item.ParentName == topic.Name)
-                         .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
+            var topicNode = new EntityTreeNode(topic.Name);
+            foreach (var subscription in subscriptions)
             {
-                var subscriptionNode = new EntityTreeNode($"Subscription  {subscription.Name}");
+                var subscriptionNode = new EntityTreeNode(subscription.Name);
                 AddSubqueues(subscriptionNode, subscription.Name, EntityKind.Subscription, topic.Name, subscription.IsPartitioned,
-                    subscription.ApproximateActiveCount, subscription.ApproximateDeadLetterCount);
+                    subscription.ApproximateActiveCount, subscription.ApproximateDeadLetterCount,
+                    subscription.ApproximateTransferDeadLetterCount);
                 topicNode.Children.Add(subscriptionNode);
             }
-            EntityNodes.Add(topicNode);
+            topicGroup.Children.Add(topicNode);
         }
+        EntityNodes.Add(topicGroup);
+        RestoreExpandedNodes(EntityNodes, expandedNodes);
     }
+
+    private static bool MatchesEntitySearch(string value, string query) =>
+        string.IsNullOrEmpty(query) || value.Contains(query, StringComparison.OrdinalIgnoreCase);
 
     private static void AddSubqueues(
         EntityTreeNode parent,
@@ -401,12 +504,117 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         string? topicName,
         bool partitioned,
         long? activeCount,
-        long? deadLetterCount)
+        long? deadLetterCount,
+        long? transferDeadLetterCount)
     {
-        parent.Children.Add(new("Active", new(entityName, kind, topicName, MessageSubqueue.Active, partitioned, activeCount)));
-        parent.Children.Add(new("Dead-letter", new(entityName, kind, topicName, MessageSubqueue.DeadLetter, partitioned, deadLetterCount)));
-        parent.Children.Add(new("Transfer dead-letter", new(entityName, kind, topicName, MessageSubqueue.TransferDeadLetter, partitioned)));
+        parent.Children.Add(new($"Active ({FormatCount(activeCount)})",
+            new(entityName, kind, topicName, MessageSubqueue.Active, partitioned, activeCount)));
+        parent.Children.Add(new($"Dead-letter ({FormatCount(deadLetterCount)})",
+            new(entityName, kind, topicName, MessageSubqueue.DeadLetter, partitioned, deadLetterCount)));
+        parent.Children.Add(new($"Transfer dead-letter ({FormatCount(transferDeadLetterCount)})",
+            new(entityName, kind, topicName, MessageSubqueue.TransferDeadLetter, partitioned, transferDeadLetterCount)));
     }
+
+    private static string FormatCount(long? count) =>
+        count?.ToString("N0", CultureInfo.CurrentCulture) ?? "?";
+
+    private static EntityTreeNode? FindSourceNode(
+        IEnumerable<EntityTreeNode> nodes,
+        MessageSource target)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Source is { } source &&
+                source.EntityName == target.EntityName &&
+                source.EntityKind == target.EntityKind &&
+                source.TopicName == target.TopicName &&
+                source.Subqueue == target.Subqueue)
+            {
+                return node;
+            }
+
+            if (FindSourceNode(node.Children, target) is { } child)
+            {
+                return child;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool ExpandPathToSource(
+        IEnumerable<EntityTreeNode> nodes,
+        MessageSource target)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Source is { } source && IsSameSource(source, target))
+            {
+                return true;
+            }
+
+            if (ExpandPathToSource(node.Children, target))
+            {
+                node.IsExpanded = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static HashSet<string> CaptureExpandedNodes(IEnumerable<EntityTreeNode> nodes)
+    {
+        var expanded = new HashSet<string>(StringComparer.Ordinal);
+        CaptureExpandedNodes(nodes, string.Empty, expanded);
+        return expanded;
+    }
+
+    private static void CaptureExpandedNodes(
+        IEnumerable<EntityTreeNode> nodes,
+        string parentPath,
+        ISet<string> expanded)
+    {
+        foreach (var node in nodes)
+        {
+            var path = NodePath(parentPath, node);
+            if (node.IsExpanded)
+            {
+                expanded.Add(path);
+            }
+
+            CaptureExpandedNodes(node.Children, path, expanded);
+        }
+    }
+
+    private static void RestoreExpandedNodes(
+        IEnumerable<EntityTreeNode> nodes,
+        IReadOnlySet<string> expanded,
+        string parentPath = "")
+    {
+        foreach (var node in nodes)
+        {
+            var path = NodePath(parentPath, node);
+            node.IsExpanded = expanded.Contains(path);
+            RestoreExpandedNodes(node.Children, expanded, path);
+        }
+    }
+
+    private static string NodePath(string parentPath, EntityTreeNode node)
+    {
+        var segment = node.Source is { } source
+            ? $"source:{source.EntityKind}:{source.TopicName}:{source.EntityName}:{source.Subqueue}"
+            : node.IsGroup
+                ? $"group:{node.Title.Split(' ', 2)[0]}"
+                : $"node:{node.Title}";
+        return $"{parentPath}/{segment}";
+    }
+
+    private static bool IsSameSource(MessageSource source, MessageSource target) =>
+        source.EntityName == target.EntityName &&
+        source.EntityKind == target.EntityKind &&
+        source.TopicName == target.TopicName &&
+        source.Subqueue == target.Subqueue;
 
     private void ApplyFilter()
     {

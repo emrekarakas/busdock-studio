@@ -20,7 +20,8 @@ public sealed record EntityDescriptor(
     string? ParentName = null,
     bool IsPartitioned = false,
     long? ApproximateActiveCount = null,
-    long? ApproximateDeadLetterCount = null)
+    long? ApproximateDeadLetterCount = null,
+    long? ApproximateTransferDeadLetterCount = null)
 {
     public string EntityPath => Kind == EntityKind.Subscription
         ? $"{ParentName}/Subscriptions/{Name}"

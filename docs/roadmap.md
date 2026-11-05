@@ -1,10 +1,9 @@
 # Roadmap
 
-## Next: credential and authentication foundations
+## Credential and authentication foundations
 
-- Implement a macOS Keychain-backed `ISecretStore` with migration from memory-only sessions.
+- Completed: store macOS credentials in Keychain and persist only non-secret profile metadata and theme preferences.
 - Add `InteractiveBrowserCredential` and least-privilege role guidance without changing Core contracts.
-- Persist only non-secret connection metadata and theme preferences.
 
 ## DLQ resend design
 
@@ -21,7 +20,7 @@ DLQ resend is deliberately not part of the MVP. The planned workflow will:
 
 ## Packaging and platform
 
-- Replace the screenshot placeholder and add an original application icon.
+- Add an original application icon.
 - Add signed and notarized `.app` and DMG release automation when an Apple Developer certificate is available.
 - Add `osx-x64` testing and packaging for Intel macOS.
 - Evaluate Windows and Linux packaging after the macOS workflow is stable.

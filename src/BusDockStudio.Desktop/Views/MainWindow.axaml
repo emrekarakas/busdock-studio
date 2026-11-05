@@ -80,7 +80,7 @@
                 <Grid ColumnDefinitions="18,*" ColumnSpacing="6" Margin="0,2,0,2">
                   <TextBlock Text="◉" Foreground="{DynamicResource SuccessBrush}" FontSize="10"
                              VerticalAlignment="Top" Margin="0,2,0,0" />
-                  <TextBlock Grid.Column="1" Text="Kept in memory only and forgotten when the app exits."
+                  <TextBlock Grid.Column="1" Text="Saved securely in macOS Keychain and restored on next launch."
                              Classes="muted" TextWrapping="Wrap" FontSize="10" />
                 </Grid>
                 <Button Content="Test &amp; add connection" Command="{Binding AddConnectionCommand}"
@@ -103,16 +103,37 @@
                       IsEnabled="{Binding HasSelectedConnection}"
                       ToolTip.Tip="Remove connection" AutomationProperties.Name="Remove selected connection" />
             </Grid>
-            <Grid Grid.Row="2">
-              <TreeView ItemsSource="{Binding EntityNodes}" SelectedItem="{Binding SelectedNode}"
+            <Grid Grid.Row="2" RowDefinitions="Auto,*">
+              <TextBox Text="{Binding EntitySearchText}"
+                       IsVisible="{Binding HasSelectedConnection}"
+                       PlaceholderText="Search queues, topics, subscriptions…"
+                       Margin="0,0,0,8"
+                       AutomationProperties.Name="Search entities" />
+              <TreeView Grid.Row="1" ItemsSource="{Binding EntityNodes}" SelectedItem="{Binding SelectedNode}"
+                        Classes="compact-tree"
                         AutomationProperties.Name="Service Bus entity tree">
+                <TreeView.Styles>
+                  <Style Selector="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+                  </Style>
+                </TreeView.Styles>
                 <TreeView.ItemTemplate>
                   <TreeDataTemplate DataType="vm:EntityTreeNode" ItemsSource="{Binding Children}">
-                    <TextBlock Text="{Binding Title}" Margin="3,5" />
+                    <TextBlock Text="{Binding Title}" FontSize="{Binding FontSize}" Margin="2,1"
+                               MaxWidth="220" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Title}">
+                      <TextBlock.ContextMenu>
+                        <ContextMenu IsVisible="{Binding IsMessageSource}">
+                          <MenuItem Header="Delete all messages…" Click="PurgeSubqueue_Click"
+                                    CommandParameter="{Binding}"
+                                    AutomationProperties.Name="Purge selected message view" />
+                        </ContextMenu>
+                      </TextBlock.ContextMenu>
+                    </TextBlock>
                   </TreeDataTemplate>
                 </TreeView.ItemTemplate>
               </TreeView>
-              <StackPanel IsVisible="{Binding !HasSelectedConnection}" HorizontalAlignment="Center"
+              <StackPanel Grid.Row="1" IsVisible="{Binding !HasSelectedConnection}" HorizontalAlignment="Center"
                           VerticalAlignment="Center" Width="210" Spacing="8">
                 <Border Classes="icon-tile" HorizontalAlignment="Center">
                   <TextBlock Text="⌁" Foreground="{DynamicResource AccentBrush}" FontSize="22"
@@ -333,13 +354,15 @@
               <TextBlock Text="{Binding PurgeSummary}" TextWrapping="Wrap" />
               <TextBlock Text="Locked, deferred, and scheduled messages may remain. Interruption can leave a partial result."
                          Classes="muted" TextWrapping="Wrap" FontSize="10" />
-              <TextBlock Text="TYPE THE EXACT ENTITY NAME" Classes="label" />
-              <TextBox Text="{Binding PurgeConfirmation}" AutomationProperties.Name="Purge entity confirmation" />
+              <CheckBox IsChecked="{Binding IsPurgeAcknowledged}"
+                        Content="I understand that this permanently deletes eligible messages."
+                        AutomationProperties.Name="Acknowledge permanent purge" />
               <TextBlock Text="{Binding PurgeDeletedCount, StringFormat={}Deleted: {0:N0}}" />
               <WrapPanel HorizontalAlignment="Right">
                 <Button Content="Close" Command="{Binding ClosePurgeCommand}" Classes="compact" Margin="0,0,6,0" />
                 <Button Content="Stop" Command="{Binding CancelOperationCommand}" Classes="compact" Margin="0,0,6,0" />
                 <Button Content="Purge permanently" Command="{Binding ConfirmPurgeCommand}" Classes="danger compact"
+                        IsEnabled="{Binding IsPurgeAcknowledged}"
                         AutomationProperties.Name="Confirm permanent purge" />
               </WrapPanel>
             </StackPanel>

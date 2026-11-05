@@ -21,7 +21,8 @@ public sealed class AzureEntityBrowser : IEntityBrowser
                 EntityKind.Queue,
                 IsPartitioned: queue.EnablePartitioning,
                 ApproximateActiveCount: runtime.Value.ActiveMessageCount,
-                ApproximateDeadLetterCount: runtime.Value.DeadLetterMessageCount));
+                ApproximateDeadLetterCount: runtime.Value.DeadLetterMessageCount,
+                ApproximateTransferDeadLetterCount: runtime.Value.TransferDeadLetterMessageCount));
         }
 
         await foreach (var topic in client.GetTopicsAsync(cancellationToken))
@@ -40,7 +41,8 @@ public sealed class AzureEntityBrowser : IEntityBrowser
                     topic.Name,
                     topic.EnablePartitioning,
                     runtime.Value.ActiveMessageCount,
-                    runtime.Value.DeadLetterMessageCount));
+                    runtime.Value.DeadLetterMessageCount,
+                    runtime.Value.TransferDeadLetterMessageCount));
             }
         }
 

@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using BusDockStudio.AzureServiceBus;
+using BusDockStudio.Core.Services;
 using BusDockStudio.Desktop.ViewModels;
 using BusDockStudio.Desktop.Views;
 using BusDockStudio.Infrastructure;
@@ -17,8 +18,12 @@ public sealed partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var secretStore = new InMemorySecretStore();
-            var settings = new InMemoryApplicationSettings();
+            ISecretStore secretStore = OperatingSystem.IsMacOS()
+                ? new MacOSKeychainSecretStore()
+                : new InMemorySecretStore();
+            IApplicationSettings settings = OperatingSystem.IsMacOS()
+                ? new FileApplicationSettings()
+                : new InMemoryApplicationSettings();
             var viewModel = new MainWindowViewModel(
                 new AzureServiceBusConnectionService(),
                 new AzureEntityBrowser(),

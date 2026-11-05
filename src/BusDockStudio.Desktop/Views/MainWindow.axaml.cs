@@ -24,4 +24,14 @@ public sealed partial class MainWindow : Window
             await clipboard.SetTextAsync(viewModel.SelectedMetadata);
         }
     }
+
+    private void PurgeSubqueue_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { CommandParameter: EntityTreeNode { IsMessageSource: true } node } &&
+            DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.SelectedNode = node;
+            viewModel.OpenPurgeCommand.Execute(null);
+        }
+    }
 }

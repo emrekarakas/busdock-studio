@@ -8,6 +8,6 @@ Include a minimal reproduction with synthetic data, affected version or commit, 
 
 ## Scope and secret handling
 
-The MVP stores connection strings only in process memory. It does not persist or log connection strings, SAS keys, tokens, or message bodies. Metadata may be displayed on screen because inspection is the product's purpose; users are responsible for protecting screenshots and copied content.
+On macOS, BusDock Studio stores connection strings as generic-password items in the user's Keychain. It never writes connection strings, SAS keys, tokens, or message bodies to the settings file or logs. The settings file contains only profile IDs, display names, namespace hostnames, and the appearance preference. Metadata may be displayed on screen because inspection is the product's purpose; users are responsible for protecting screenshots and copied content.
 
 Never use production credentials in bug reports or automated tests. Rotate any credential that may have been exposed.
